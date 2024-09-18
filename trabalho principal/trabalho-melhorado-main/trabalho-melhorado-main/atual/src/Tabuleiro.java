@@ -128,7 +128,7 @@ public class Tabuleiro {
     }
     public void TurnoDoJogo() {
         Scanner teclado1 = new Scanner(System.in);
-        
+    
         while (!jogoTerminou()) {
             for (int a = 0; a < jogadores.size(); a++) {
                 Jogador jogadorAtual = jogadores.get(a);
@@ -143,29 +143,54 @@ public class Tabuleiro {
                     System.out.println("Posições dos jogadores:");
                     for (int w = 0; w < jogadores.size(); w++) {
                         Jogador jogador = jogadores.get(w);
-                        System.out.println((w + 1) + "º lugar: Jogador " + jogador.getCor() + " - Casa " + jogador.getNumeroCasa());
+                        System.out.println((w + 1) + "º lugar: Jogador " + jogador.getCor() + " - Casa " + jogador.getNumeroCasa() + " - Tipo: " + jogador.getTipoDescricao() + " - Moedas: " + jogador.getPontuacaoEmMoedas());
                     }
                     teclado1.close();
                     return; // Encerra o método e o jogo
                 }
     
-                // Pular rodada se necessário
+                // Verifica se o jogador está preso
                 if (jogadorAtual.pulaRodada() > 0) {
-                    System.out.println("O jogador " + jogadorAtual.getCor() + " que possui um número de moedas = " + jogadorAtual.getPontuacaoEmMoedas() + " está pulando esta rodada.");
-                    jogadorAtual.setPulaProximaRodada(jogadorAtual.getPulaProximaRodada()-1);
-                    continue; 
+                    if (jogadorAtual.getPulaProximaRodada() == 2) {
+                        // Apenas pula o turno se restarem 2 rodadas de prisão
+                        System.out.println("O jogador " + jogadorAtual.getCor() + " está preso e não jogará este turno. Restam " + jogadorAtual.getPulaProximaRodada() + " rodadas.");
+                        jogadorAtual.setPulaProximaRodada(jogadorAtual.getPulaProximaRodada() - 1);
+                        continue; // Pula o turno
+                    } else if (jogadorAtual.getPulaProximaRodada() == 1) {
+                        // Oferece a opção de pagar a taxa quando restar 1 rodada
+                        System.out.println("O jogador " + jogadorAtual.getCor() + " está preso! Deseja pagar uma taxa de 2 moedas para sair da prisão agora? (1 - Sim, 2 - Não)");
+                        int escolha = teclado1.nextInt();
+    
+                        if (escolha == 1) {
+                            if (jogadorAtual.getPontuacaoEmMoedas() >= 2) {
+                                jogadorAtual.removerMoeda(2);
+                                jogadorAtual.setPulaProximaRodada(0); // Libera o jogador
+                                System.out.println("O jogador " + jogadorAtual.getCor() + " pagou a taxa e saiu da prisão.");
+                            } else {
+                                System.out.println("O jogador " + jogadorAtual.getCor() + " não tem moedas suficientes para pagar a taxa.");
+                                jogadorAtual.setPulaProximaRodada(jogadorAtual.getPulaProximaRodada() - 1); // Continua preso
+                                continue; // Pula o turno
+                            }
+                        } else {
+                            // O jogador escolheu não pagar, então continua preso
+                            System.out.println("O jogador " + jogadorAtual.getCor() + " escolheu não pagar. Ainda está preso por " + jogadorAtual.getPulaProximaRodada() + " rodada(s).");
+                            jogadorAtual.setPulaProximaRodada(jogadorAtual.getPulaProximaRodada() - 1);
+                            continue; // Pula o turno
+                        }
+                    }
                 }
     
                 // Processo de rolar dados e mover jogador
-                System.out.println("Turno do jogador N* " + (a + 1) + " (" + jogadorAtual.getCor() + " que possui um número de moedas = (" + jogadorAtual.getPontuacaoEmMoedas() + "), role os dados.");
+                System.out.println("Turno do jogador N* " + (a + 1) + " (" + jogadorAtual.getCor() + ", Tipo: " + jogadorAtual.getTipoDescricao() + ", Moedas: " + jogadorAtual.getPontuacaoEmMoedas() + ").");
+                System.out.println("Role os dados.");
                 ResultadoDados resultado = jogadorAtual.rolarDados();
                 int novaPosicao = posicaoAntiga + resultado.getSoma();
                 if (novaPosicao >= tabuleiroJogado.size()) {
                     novaPosicao = tabuleiroJogado.size() - 1;
                 }
     
-                System.out.println("\n Posição antiga do jogador " + jogadorAtual.getCor() + " : " + posicaoAntiga);
-                System.out.println("Nova posição calculada para o jogador " + jogadorAtual.getCor() + " : " + novaPosicao);
+                System.out.println("\nPosição antiga do jogador " + jogadorAtual.getCor() + ": " + posicaoAntiga);
+                System.out.println("Nova posição calculada para o jogador " + jogadorAtual.getCor() + ": " + novaPosicao);
     
                 // Atualiza a posição do jogador no tabuleiro
                 removerCorCasa(posicaoAntiga, jogadorAtual.getCor());
@@ -174,14 +199,10 @@ public class Tabuleiro {
     
                 // Aplica a regra da casa em que o jogador parou
                 tabuleiroJogado.get(novaPosicao).aplicarRegra(jogadorAtual);
-                 
+    
                 if (novaPosicao != jogadores.get(a).getNumeroCasa()) {
                     removerCorCasa(novaPosicao, jogadores.get(a).getCor());
                     adicionarCorCasa(jogadores.get(a).getNumeroCasa(), jogadores.get(a).getCor());
-                }
-                if (novaPosicao > tabuleiroJogado.size()) {
-                    novaPosicao = tabuleiroJogado.size() - 1;  
-                    
                 }
     
                 // Imprime o estado atual do tabuleiro
@@ -203,11 +224,10 @@ public class Tabuleiro {
                 }
     
                 // Pergunta se o jogador deseja continuar
-                System.out.println("\n Deseja continuar? \n 1 - sim \n 2 - não ");
-                Scanner teclado3 = new Scanner(System.in);
-                int p = teclado3.nextInt();
+                System.out.println("\nDeseja continuar? \n1 - Sim \n2 - Não");
+                int p = teclado1.nextInt();
                 if (p == 2) {
-                    teclado3.close();
+                    teclado1.close();
                     return; // Encerra o método e o jogo
                 }
             }
@@ -219,10 +239,10 @@ public class Tabuleiro {
         System.out.println("Posições dos jogadores:");
         for (int i = 0; i < jogadores.size(); i++) {
             Jogador jogador = jogadores.get(i);
-            System.out.println((i + 1) + "º lugar: Jogador " + jogador.getCor() + " - Casa " + jogador.getNumeroCasa() + " - Tipo: " + jogador.getTipo() + " - Moedas: " + jogador.getPontuacaoEmMoedas() + " - NUMERO de jogadas : " +jogador.getNumeroDeJogadas() );
+            System.out.println((i + 1) + "º lugar: Jogador " + jogador.getCor() + " - Casa " + jogador.getNumeroCasa() + " - Tipo: " + jogador.getTipoDescricao() + " - Moedas: " + jogador.getPontuacaoEmMoedas() + " - Número de jogadas: " + jogador.getNumeroDeJogadas());
+        }
     }
     
-    }
  
     
    
